@@ -1,61 +1,60 @@
 "use client"
 
-import { mockUser, recentTransactions, quantoInsights } from "@/lib/mock-data"
-import { ChevronRight, Eye, EyeOff, Send, Plus } from "lucide-react"
+import type { Persona } from "@/lib/types"
+import { ChevronRight, Eye, EyeOff, Send, Zap } from "lucide-react"
 import { useState } from "react"
 import { QuantoCard } from "@/components/quanto/quanto-card"
+import { quickActions } from "@/lib/mock-data"
 
-export function DashboardScreen() {
+interface DashboardScreenProps {
+  persona: Persona
+}
+
+export function DashboardScreen({ persona }: DashboardScreenProps) {
   const [showBalance, setShowBalance] = useState(true)
-  const primaryCard = mockUser.cards[0]
-  const primaryAccount = mockUser.accounts[0]
-  const topInsight = quantoInsights[0]
+  const topInsight = persona.quantoResponses[0]
 
   return (
     <div className="space-y-6">
-      {/* Primary Card */}
       <div className="relative">
-        <div
-          className={`bg-gradient-to-br ${primaryCard.color} rounded-2xl p-6 text-white shadow-lg aspect-video flex flex-col justify-between`}
-        >
-          <div className="flex justify-between items-start">
+        <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-6 text-white shadow-lg">
+          <div className="flex justify-between items-start mb-8">
             <div>
-              <p className="text-xs opacity-75">Checking Account</p>
-              <h3 className="text-lg font-semibold">{primaryCard.cardholderName}</h3>
+              <p className="text-sm opacity-75">Account Balance</p>
+              <h2 className="text-4xl font-bold">{showBalance ? `₦${persona.balance.toLocaleString()}` : "••••••"}</h2>
             </div>
-            <div className="w-10 h-6 bg-white/30 rounded"></div>
+            <button onClick={() => setShowBalance(!showBalance)} className="text-white/70 hover:text-white">
+              {showBalance ? <Eye size={24} /> : <EyeOff size={24} />}
+            </button>
           </div>
-          <div>
-            <p className="text-xs opacity-75 mb-1">Card Number</p>
-            <p className="text-xl font-mono tracking-widest">•••• •••• •••• {primaryCard.lastFour}</p>
-            <div className="flex justify-between mt-4 text-xs">
-              <span>{primaryCard.expiry}</span>
-              <span>Valid</span>
-            </div>
+
+          {/* Action Buttons - Consolidated */}
+          <div className="grid grid-cols-2 gap-3">
+            <button className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white py-3 rounded-xl font-medium transition-all">
+              <Send size={18} />
+              Send Money
+            </button>
+            <button className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white py-3 rounded-xl font-medium transition-all">
+              <Zap size={18} />
+              Quick Pay
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Balance Section */}
-      <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-zinc-400">Total Balance</h3>
-          <button onClick={() => setShowBalance(!showBalance)} className="text-zinc-400 hover:text-zinc-300">
-            {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
-          </button>
-        </div>
-        <h2 className="text-3xl font-bold text-zinc-50 mb-4">
-          {showBalance ? `₦${(primaryAccount.balance + mockUser.accounts[1].balance).toLocaleString()}` : "••••••"}
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors">
-            <Send size={18} />
-            Send
-          </button>
-          <button className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white py-3 rounded-lg font-medium transition-colors">
-            <Plus size={18} />
-            Request
-          </button>
+      {/* Quick Actions Grid */}
+      <div>
+        <p className="text-xs font-semibold text-zinc-400 mb-3">Quick Actions</p>
+        <div className="grid grid-cols-3 gap-3">
+          {quickActions.map((action) => (
+            <button
+              key={action.id}
+              className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-zinc-700"
+            >
+              <span className="text-2xl">{action.icon}</span>
+              <span className="text-xs font-medium text-zinc-300 text-center">{action.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -67,24 +66,32 @@ export function DashboardScreen() {
           category={topInsight.category}
           actionLabel={topInsight.actionLabel}
           priority={topInsight.priority}
+          flowType={topInsight.flowType}
+          flowData={topInsight.flowData}
         />
       )}
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Pay Bills", icon: "📱" },
-          { label: "View Offers", icon: "🎁" },
-          { label: "Support", icon: "💬" },
-        ].map((item) => (
-          <button
-            key={item.label}
-            className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg p-4 flex flex-col items-center gap-2 transition-colors"
-          >
-            <span className="text-2xl">{item.icon}</span>
-            <span className="text-xs font-medium text-zinc-300">{item.label}</span>
-          </button>
-        ))}
+      {/* Spending Overview */}
+      <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+        <h3 className="font-semibold text-zinc-50 mb-4">This Month's Spending</h3>
+        <div className="space-y-4">
+          <div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-zinc-400">Current Spend</span>
+              <span className="text-zinc-50 font-semibold">₦{persona.currentSpend.toLocaleString()}</span>
+            </div>
+            <div className="w-full bg-zinc-800 rounded-full h-2">
+              <div
+                className="bg-blue-500 h-2 rounded-full"
+                style={{ width: `${(persona.currentSpend / persona.usualMonthlySpend) * 100}%` }}
+              />
+            </div>
+          </div>
+          <div className="flex justify-between text-xs text-zinc-400">
+            <span>Usual Monthly: ₦{persona.usualMonthlySpend.toLocaleString()}</span>
+            <span>{Math.round((persona.currentSpend / persona.usualMonthlySpend) * 100)}% of usual</span>
+          </div>
+        </div>
       </div>
 
       {/* Recent Transactions Preview */}
@@ -97,7 +104,7 @@ export function DashboardScreen() {
           </button>
         </div>
         <div className="space-y-3">
-          {recentTransactions.slice(0, 3).map((tx) => (
+          {persona.transactions.slice(0, 3).map((tx) => (
             <div key={tx.id} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="text-xl">{tx.icon}</div>

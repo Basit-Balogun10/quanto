@@ -28,6 +28,12 @@ export type Transaction = {
   type: "debit" | "credit"
   description?: string
   icon?: string
+  narrationTag?: string
+  recipientName?: string
+  recipientAccount?: string
+  recipientBank?: string
+  transactionReference?: string
+  status?: "completed" | "pending" | "failed"
 }
 
 export type User = {
@@ -49,6 +55,8 @@ export type QuantoInsight = {
   priority: "high" | "medium" | "low"
   timestamp: string
   read: boolean
+  flowType?: "salary_delay" | "subscription_warning" | "reward_offer" | "spending_cooloff" | "detty_december"
+  flowData?: Record<string, any>
 }
 
 export type Rule = {
@@ -63,6 +71,34 @@ export type Rule = {
 export type AdminControls = {
   enabledCategories: Record<Category, boolean>
   rules: Rule[]
+}
+
+export type Persona = {
+  id: string // Changed from string to be UUID-like format
+  name: string
+  personaType: string
+  accountNumber: string
+  balance: number
+  usualMonthlySpend: number
+  currentSpend: number
+  savingsStreak: number
+  email: string
+  avatar: string
+  transactions: Transaction[]
+  quantoResponses: QuantoInsight[]
+  salaryExpectedDate?: string
+  lastSalaryDate?: string
+  subscriptionData?: Array<{ name: string; amount: number; renewalDate: string; enabled: boolean }>
+  recentFlightPurchase?: boolean
+  spendingInThreeDays?: number
+  month?: number
+}
+
+export type QuickAction = {
+  id: string
+  label: string
+  icon: string
+  description?: string
 }
 
 export { defaultAdminControls } from "./mock-data"

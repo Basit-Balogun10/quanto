@@ -1,40 +1,75 @@
 "use client"
 
-import { quantoInsights } from "@/lib/mock-data"
+import type { Persona } from "@/lib/types"
+import { Search } from "lucide-react"
+import { useState } from "react"
 import { QuantoCard } from "@/components/quanto/quanto-card"
-import { CheckCircle2 } from "lucide-react"
 
 interface InsightsScreenProps {
-  onMarkAllRead: () => void
+  persona: Persona
 }
 
-export function InsightsScreen({ onMarkAllRead }: InsightsScreenProps) {
-  const unreadInsights = quantoInsights.filter((i) => !i.read)
+export function InsightsScreen({ persona }: InsightsScreenProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+  const categories = ["empathetic", "preventive", "reward", "educational", "ambient"] as const
+
+  const filteredInsights = persona.quantoResponses.filter((insight) => {
+    const matchesSearch =
+      insight.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      insight.message.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = !selectedCategory || insight.category === selectedCategory
+    return matchesSearch && matchesCategory
+  })
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-zinc-50 mb-1">Insights</h2>
-          <p className="text-sm text-zinc-400">
-            {unreadInsights.length} new insight{unreadInsights.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-        {unreadInsights.length > 0 && (
-          <button
-            onClick={onMarkAllRead}
-            className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
-          >
-            Mark all read
-          </button>
-        )}
+      <div>
+        <h2 className="text-2xl font-bold text-zinc-50">Quanto Insights</h2>
+        <p className="text-sm text-zinc-400">AI-powered financial guidance</p>
       </div>
 
-      {/* Unread Insights */}
-      {unreadInsights.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-zinc-400 uppercase">New</p>
-          {unreadInsights.map((insight) => (
+      <div className="space-y-3">
+        <div className="relative">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Search insights..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-50 placeholder-zinc-500 focus:outline-none focus:border-blue-600"
+          />
+        </div>
+
+        {/* Category Filter */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              selectedCategory === null ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            }`}
+          >
+            All
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors capitalize ${
+                selectedCategory === cat ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Insights List - Removed category legend */}
+      <div className="space-y-4">
+        {filteredInsights.length > 0 ? (
+          filteredInsights.map((insight) => (
             <QuantoCard
               key={insight.id}
               title={insight.title}
@@ -42,30 +77,16 @@ export function InsightsScreen({ onMarkAllRead }: InsightsScreenProps) {
               category={insight.category}
               actionLabel={insight.actionLabel}
               priority={insight.priority}
+              flowType={insight.flowType}
+              flowData={insight.flowData}
             />
-          ))}
-        </div>
-      )}
-
-      {/* Read Insights */}
-      {quantoInsights.filter((i) => i.read).length > 0 && (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-zinc-400 uppercase">Earlier</p>
-          {quantoInsights
-            .filter((i) => i.read)
-            .map((insight) => (
-              <div key={insight.id} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 opacity-60">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 size={20} className="text-green-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-zinc-400">{insight.title}</p>
-                    <p className="text-xs text-zinc-500 mt-1">{insight.message}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-zinc-400">No insights match your filters</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

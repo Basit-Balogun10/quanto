@@ -1,92 +1,116 @@
 "use client"
 
-import { Bell, Lock, Eye, Globe, HelpCircle, LogOut, ChevronRight } from "lucide-react"
+import type { Persona } from "@/lib/types"
 import { useState } from "react"
 
-const settingsSections = [
-  {
-    title: "Notifications",
-    items: [
-      { label: "Transaction Alerts", icon: Bell, enabled: true },
-      { label: "Quanto Insights", icon: Globe, enabled: true },
-    ],
-  },
-  {
-    title: "Privacy & Security",
-    items: [
-      { label: "Biometric Login", icon: Lock, enabled: true },
-      { label: "Privacy Settings", icon: Eye, enabled: false },
-    ],
-  },
-  {
-    title: "About",
-    items: [
-      { label: "Help & Support", icon: HelpCircle, enabled: null },
-      { label: "Terms & Conditions", icon: Globe, enabled: null },
-    ],
-  },
-]
+interface SettingsScreenProps {
+  persona: Persona
+}
 
-export function SettingsScreen() {
-  const [toggles, setToggles] = useState<Record<string, boolean>>({
-    "Transaction Alerts": true,
-    "Quanto Insights": true,
-    "Biometric Login": true,
-    "Privacy Settings": false,
+export function SettingsScreen({ persona }: SettingsScreenProps) {
+  const [controls, setControls] = useState({
+    empathetic: true,
+    preventive: true,
+    reward: true,
+    educational: true,
+    ambient: true,
   })
 
-  const handleToggle = (label: string) => {
-    setToggles((prev) => ({
-      ...prev,
-      [label]: !prev[label],
-    }))
+  const toggleCategory = (category: keyof typeof controls) => {
+    setControls((prev) => ({ ...prev, [category]: !prev[category] }))
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-zinc-50 mb-1">Settings</h2>
-        <p className="text-sm text-zinc-400">Manage your preferences</p>
+        <h2 className="text-2xl font-bold text-zinc-50 mb-2">Privacy & Controls</h2>
+        <p className="text-sm text-zinc-400">Manage what Quanto can access and do</p>
       </div>
 
-      {settingsSections.map((section) => (
-        <div key={section.title}>
-          <h3 className="text-xs font-semibold text-zinc-400 uppercase mb-3">{section.title}</h3>
-          <div className="space-y-2">
-            {section.items.map(({ label, icon: Icon, enabled }) => (
-              <div
-                key={label}
-                className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex items-center justify-between hover:bg-zinc-800/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Icon size={20} className="text-zinc-400" />
-                  <span className="text-sm font-medium text-zinc-50">{label}</span>
-                </div>
-                {enabled !== null && (
-                  <button
-                    onClick={() => handleToggle(label)}
-                    className={`w-11 h-6 rounded-full transition-colors ${
-                      toggles[label] ? "bg-blue-600" : "bg-zinc-700"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                        toggles[label] ? "translate-x-5" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                )}
-                {enabled === null && <ChevronRight size={20} className="text-zinc-600" />}
+      {/* Quanto Categories */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-zinc-50">Quanto Response Categories</h3>
+
+        <div className="space-y-3">
+          {[
+            {
+              id: "empathetic",
+              name: "Empathetic Support",
+              description: "Detect salary delays and offer financial support",
+            },
+            {
+              id: "preventive",
+              name: "Preventive Alerts",
+              description: "Alert when overspending or unusual patterns detected",
+            },
+            {
+              id: "reward",
+              name: "Rewards & Achievements",
+              description: "Celebrate milestones and savings achievements",
+            },
+            {
+              id: "educational",
+              name: "Educational Tips",
+              description: "Provide financial literacy and best practices",
+            },
+            {
+              id: "ambient",
+              name: "Ambient Insights",
+              description: "Context-aware spending reminders and suggestions",
+            },
+          ].map((cat) => (
+            <div
+              key={cat.id}
+              className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center justify-between"
+            >
+              <div>
+                <p className="text-sm font-semibold text-zinc-50">{cat.name}</p>
+                <p className="text-xs text-zinc-400 mt-1">{cat.description}</p>
               </div>
-            ))}
+              <button
+                onClick={() => toggleCategory(cat.id as keyof typeof controls)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  controls[cat.id as keyof typeof controls] ? "bg-blue-600" : "bg-zinc-700"
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    controls[cat.id as keyof typeof controls] ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Data Usage */}
+      <div>
+        <h3 className="font-semibold text-zinc-50 mb-3">Data Usage</h3>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+          <div>
+            <p className="text-sm text-zinc-300">Spending Patterns</p>
+            <p className="text-xs text-zinc-400 mt-1">Used for preventive and educational insights</p>
+          </div>
+          <div>
+            <p className="text-sm text-zinc-300">Income & Savings</p>
+            <p className="text-xs text-zinc-400 mt-1">Used for reward and ambient insights</p>
+          </div>
+          <div>
+            <p className="text-sm text-zinc-300">Transaction History</p>
+            <p className="text-xs text-zinc-400 mt-1">Used for all Quanto analysis</p>
           </div>
         </div>
-      ))}
+      </div>
 
-      <button className="w-full flex items-center justify-center gap-2 bg-red-900/20 hover:bg-red-900/30 text-red-400 py-3 rounded-lg font-medium transition-colors border border-red-900/50">
-        <LogOut size={18} />
-        Sign Out
-      </button>
+      {/* About Quanto */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+        <h3 className="font-semibold text-zinc-50 mb-2">About Quanto</h3>
+        <p className="text-sm text-zinc-400">
+          Quanto is a privacy-first AI companion designed to provide empathetic, explainable financial guidance based on
+          your explicit consent.
+        </p>
+      </div>
     </div>
   )
 }
