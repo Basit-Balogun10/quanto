@@ -1,18 +1,266 @@
-"use client"
+"use client";
 
-import type { Persona } from "@/lib/types"
-import { ChevronRight, Eye, EyeOff, Send, Zap } from "lucide-react"
-import { useState } from "react"
-import { QuantoCard } from "@/components/quanto/quanto-card"
-import { quickActions } from "@/lib/mock-data"
+import type { Persona, QuantoInsight } from "@/lib/types";
+import { ChevronRight, Eye, EyeOff, Send, Zap } from "lucide-react";
+import { useState } from "react";
+import { QuantoCard } from "@/components/quanto/quanto-card";
+import { quickActions } from "@/lib/mock-data";
+import {
+  TransferModal,
+  type TransferData,
+} from "@/components/modals/transfer-modal";
+import { DettyDecemberModal } from "@/components/modals/detty-december-modal";
+import { TravelRewardModal } from "@/components/modals/travel-reward-modal";
+import { CooloffModal } from "@/components/modals/cooloff-modal";
 
 interface DashboardScreenProps {
-  persona: Persona
+  persona: Persona;
 }
 
 export function DashboardScreen({ persona }: DashboardScreenProps) {
-  const [showBalance, setShowBalance] = useState(true)
-  const topInsight = persona.quantoResponses[0]
+  const [showBalance, setShowBalance] = useState(true);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [currentPersona, setCurrentPersona] = useState(persona);
+  const [showDettyModal, setShowDettyModal] = useState(false);
+  const [showDettyCard, setShowDettyCard] = useState(false);
+  const [showTravelRewardModal, setShowTravelRewardModal] = useState(false);
+  const [showTravelRewardCard, setShowTravelRewardCard] = useState(false);
+  const [showCooloffModal, setShowCooloffModal] = useState(false);
+  const [cooloffFlowData, setCooloffFlowData] = useState<any>(null);
+
+  // Filter out the detty december insight and travel reward from regular display initially
+  let displayInsights = currentPersona.quantoResponses;
+
+  if (!showDettyCard) {
+    displayInsights = displayInsights.filter(
+      (r) => r.flowType !== "detty_december"
+    );
+  }
+
+  if (!showTravelRewardCard) {
+    displayInsights = displayInsights.filter(
+      (r) => r.flowType !== "travel_reward"
+    );
+  }
+
+  const topInsight = displayInsights[0];
+
+  const handleTransferComplete = (transferData: TransferData) => {
+    // Update persona balance
+    const newBalance = currentPersona.balance - transferData.amount;
+
+    // Check if transfer is fun-related and trigger detty december
+    const funCategories = ["ticketing", "concert", "entertainment", "fun"];
+    const isFunTransfer = funCategories.includes(transferData.category);
+
+    // Check if transfer is travel-related for Ngozi (any flight/travel purchase triggers Air Peace voucher)
+    const isFlightPurchase = transferData.category === "travel";
+
+    // Add transfer to transactions
+    const newTransaction = {
+      id: `tx_${Date.now()}`,
+      date: new Date().toISOString().split("T")[0],
+      vendor: transferData.recipientName,
+      amount: transferData.amount,
+      category: transferData.category,
+      type: "debit" as const,
+      icon: "➡️",
+      narrationTag: transferData.narration,
+      recipientName: transferData.recipientName,
+      recipientAccount: transferData.recipientAccount,
+      recipientBank: transferData.recipientBank,
+      status: "completed" as const,
+    };
+
+    const updatedPersona = {
+      ...currentPersona,
+      balance: newBalance,
+      currentSpend: currentPersona.currentSpend + transferData.amount,
+      transactions: [newTransaction, ...currentPersona.transactions],
+      hasDettyDecemberTrigger:
+        currentPersona.id === "user_raymond_9q3r" &&
+        currentPersona.month === 12 &&
+        isFunTransfer
+          ? true
+          : currentPersona.hasDettyDecemberTrigger,
+      recentFunTransfers:
+        isFunTransfer && currentPersona.recentFunTransfers
+          ? [...currentPersona.recentFunTransfers, transferData.category]
+          : currentPersona.recentFunTransfers,
+      recentFlightPurchase:
+        currentPersona.id === "user_ngozi_8m5n" && isFlightPurchase
+          ? true
+          : currentPersona.recentFlightPurchase,
+    };
+
+    setCurrentPersona(updatedPersona);
+
+    // Check if Tolu crosses 60% spending threshold after this transfer
+    if (
+      currentPersona.id === "user_tolu_6x2k" &&
+      currentPersona.lastSalaryAmount
+    ) {
+      const newSpendingSincePayday =
+        currentPersona.currentSpend + transferData.amount;
+      const spendingPercentage =
+        (newSpendingSincePayday / currentPersona.lastSalaryAmount) * 100;
+      const previousPercentage =
+        (currentPersona.currentSpend / currentPersona.lastSalaryAmount) * 100;
+
+      // Trigger if we just crossed the 60% threshold
+      if (previousPercentage < 60 && spendingPercentage >= 60) {
+        // Calculate days since payday
+        const payday = new Date(currentPersona.lastSalaryDate || Date.now());
+        const today = new Date();
+        const daysElapsed = Math.ceil(
+          (today.getTime() - payday.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        // Prepare flow data for the modal
+        const flowData = {
+          cooloffHours: 24,
+          spendingPercentage: Math.round(spendingPercentage),
+          salaryAmount: currentPersona.lastSalaryAmount,
+          spent3Days: newSpendingSincePayday,
+          remaining: currentPersona.lastSalaryAmount - newSpendingSincePayday,
+          paydayDate: currentPersona.lastSalaryDate,
+          daysElapsed,
+          averageDailySpend: Math.round(newSpendingSincePayday / daysElapsed),
+          breakdown: [
+            {
+              day: 1,
+              date: "Nov 10",
+              amount: 30200,
+              description: "Payday celebrations",
+            },
+            {
+              day: 2,
+              date: "Nov 11",
+              amount: 49900,
+              description: "Business investments",
+            },
+            {
+              day: 3,
+              date: "Nov 12",
+              amount: 32900,
+              description: "Equipment & utilities",
+            },
+          ],
+          largestPurchase: {
+            vendor: "Camera Equipment Store",
+            amount: 25000,
+            date: "2025-11-11",
+          },
+        };
+
+        setCooloffFlowData(flowData);
+
+        // Show cool-off modal immediately after transfer
+        setTimeout(() => {
+          setShowCooloffModal(true);
+        }, 500);
+      }
+    }
+
+    // Show Detty December modal if triggered for Raymond
+    if (
+      currentPersona.id === "user_raymond_9q3r" &&
+      currentPersona.month === 12 &&
+      isFunTransfer
+    ) {
+      setTimeout(() => {
+        setShowDettyModal(true);
+      }, 500);
+    }
+
+    // Show Air Peace Travel Reward modal if triggered for Ngozi (any flight purchase)
+    if (currentPersona.id === "user_ngozi_8m5n" && isFlightPurchase) {
+      setTimeout(() => {
+        setShowTravelRewardModal(true);
+      }, 500);
+    }
+  };
+
+  const handleDettyModalClose = () => {
+    setShowDettyModal(false);
+    // Show the detty december card on dashboard after modal closes
+    if (
+      currentPersona.id === "user_raymond_9q3r" &&
+      currentPersona.month === 12 &&
+      currentPersona.hasDettyDecemberTrigger
+    ) {
+      setShowDettyCard(true);
+    }
+  };
+
+  const handleDettyActivate = () => {
+    // Update the persona with activated feature
+    const updatedPersona = {
+      ...currentPersona,
+      activatedFeatures: {
+        ...currentPersona.activatedFeatures,
+        dettyDecemberTracker: true,
+      },
+    };
+    setCurrentPersona(updatedPersona);
+  };
+
+  const handleTravelRewardModalClose = () => {
+    setShowTravelRewardModal(false);
+    // Add the travel reward insight to Ngozi's dashboard after claiming
+    if (
+      currentPersona.id === "user_ngozi_8m5n" &&
+      currentPersona.recentFlightPurchase
+    ) {
+      const travelRewardInsight: QuantoInsight = {
+        id: "insight_travel_reward",
+        title: "Travel Discount Voucher",
+        message:
+          "Your 15% off voucher from Air Peace is ready! Use code AIRPEACE15 when booking your next flight.",
+        category: "reward",
+        actionLabel: "View Voucher",
+        priority: "high",
+        timestamp: new Date().toISOString(),
+        read: false,
+        flowType: "travel_reward",
+        flowData: {
+          partner: "Air Peace Airlines",
+          discount: "15%",
+          promoCode: "AIRPEACE15",
+          expiryDate: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000
+          ).toISOString(), // 30 days from now
+        },
+      };
+
+      const updatedPersona: Persona = {
+        ...currentPersona,
+        quantoResponses: [
+          travelRewardInsight,
+          ...currentPersona.quantoResponses,
+        ],
+        activatedFeatures: {
+          ...currentPersona.activatedFeatures,
+          travelReward: true,
+        },
+      };
+
+      setCurrentPersona(updatedPersona);
+      setShowTravelRewardCard(true);
+    }
+  };
+
+  const handleCooloffActivate = () => {
+    // Update the persona with activated cooloff feature
+    const updatedPersona = {
+      ...currentPersona,
+      activatedFeatures: {
+        ...currentPersona.activatedFeatures,
+        cooloffPeriod: true,
+      },
+    };
+    setCurrentPersona(updatedPersona);
+  };
 
   return (
     <div className="space-y-6">
@@ -21,16 +269,26 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
           <div className="flex justify-between items-start mb-8">
             <div>
               <p className="text-sm opacity-75">Account Balance</p>
-              <h2 className="text-4xl font-bold">{showBalance ? `₦${persona.balance.toLocaleString()}` : "••••••"}</h2>
+              <h2 className="text-4xl font-bold">
+                {showBalance
+                  ? `₦${currentPersona.balance.toLocaleString()}`
+                  : "••••••"}
+              </h2>
             </div>
-            <button onClick={() => setShowBalance(!showBalance)} className="text-white/70 hover:text-white">
+            <button
+              onClick={() => setShowBalance(!showBalance)}
+              className="text-white/70 hover:text-white"
+            >
               {showBalance ? <Eye size={24} /> : <EyeOff size={24} />}
             </button>
           </div>
 
           {/* Action Buttons - Consolidated */}
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white py-3 rounded-xl font-medium transition-all">
+            <button
+              onClick={() => setShowTransferModal(true)}
+              className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white py-3 rounded-xl font-medium transition-all"
+            >
               <Send size={18} />
               Send Money
             </button>
@@ -44,7 +302,9 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
 
       {/* Quick Actions Grid */}
       <div>
-        <p className="text-xs font-semibold text-zinc-400 mb-3">Quick Actions</p>
+        <p className="text-xs font-semibold text-zinc-400 mb-3">
+          Quick Actions
+        </p>
         <div className="grid grid-cols-3 gap-3">
           {quickActions.map((action) => (
             <button
@@ -52,7 +312,9 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
               className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-zinc-700"
             >
               <span className="text-2xl">{action.icon}</span>
-              <span className="text-xs font-medium text-zinc-300 text-center">{action.label}</span>
+              <span className="text-xs font-medium text-zinc-300 text-center">
+                {action.label}
+              </span>
             </button>
           ))}
         </div>
@@ -68,28 +330,60 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
           priority={topInsight.priority}
           flowType={topInsight.flowType}
           flowData={topInsight.flowData}
+          isActivated={
+            topInsight.flowType === "detty_december"
+              ? currentPersona.activatedFeatures?.dettyDecemberTracker
+              : topInsight.flowType === "spending_cooloff"
+              ? currentPersona.activatedFeatures?.cooloffPeriod
+              : topInsight.flowType === "salary_delay"
+              ? currentPersona.activatedFeatures?.salaryDelaySupport
+              : topInsight.flowType === "travel_reward"
+              ? currentPersona.activatedFeatures?.travelReward
+              : false
+          }
         />
       )}
 
       {/* Spending Overview */}
       <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-        <h3 className="font-semibold text-zinc-50 mb-4">This Month's Spending</h3>
+        <h3 className="font-semibold text-zinc-50 mb-4">
+          This Month's Spending
+        </h3>
         <div className="space-y-4">
           <div>
             <div className="flex justify-between text-sm mb-2">
               <span className="text-zinc-400">Current Spend</span>
-              <span className="text-zinc-50 font-semibold">₦{persona.currentSpend.toLocaleString()}</span>
+              <span className="text-zinc-50 font-semibold">
+                ₦{currentPersona.currentSpend.toLocaleString()}
+              </span>
             </div>
-            <div className="w-full bg-zinc-800 rounded-full h-2">
+            <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
               <div
                 className="bg-blue-500 h-2 rounded-full"
-                style={{ width: `${(persona.currentSpend / persona.usualMonthlySpend) * 100}%` }}
+                style={{
+                  width: `${Math.min(
+                    (currentPersona.currentSpend /
+                      currentPersona.usualMonthlySpend) *
+                      100,
+                    100
+                  )}%`,
+                }}
               />
             </div>
           </div>
           <div className="flex justify-between text-xs text-zinc-400">
-            <span>Usual Monthly: ₦{persona.usualMonthlySpend.toLocaleString()}</span>
-            <span>{Math.round((persona.currentSpend / persona.usualMonthlySpend) * 100)}% of usual</span>
+            <span>
+              Usual Monthly: ₦
+              {currentPersona.usualMonthlySpend.toLocaleString()}
+            </span>
+            <span>
+              {Math.round(
+                (currentPersona.currentSpend /
+                  currentPersona.usualMonthlySpend) *
+                  100
+              )}
+              % of usual
+            </span>
           </div>
         </div>
       </div>
@@ -104,22 +398,73 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
           </button>
         </div>
         <div className="space-y-3">
-          {persona.transactions.slice(0, 3).map((tx) => (
+          {currentPersona.transactions.slice(0, 3).map((tx) => (
             <div key={tx.id} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="text-xl">{tx.icon}</div>
                 <div>
-                  <p className="text-sm font-medium text-zinc-50">{tx.vendor}</p>
+                  <p className="text-sm font-medium text-zinc-50">
+                    {tx.vendor}
+                  </p>
                   <p className="text-xs text-zinc-400">{tx.date}</p>
                 </div>
               </div>
-              <p className={`font-semibold ${tx.type === "credit" ? "text-green-400" : "text-zinc-50"}`}>
+              <p
+                className={`font-semibold ${
+                  tx.type === "credit" ? "text-green-400" : "text-zinc-50"
+                }`}
+              >
                 {tx.type === "credit" ? "+" : "-"}₦{tx.amount.toLocaleString()}
               </p>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Transfer Modal */}
+      <TransferModal
+        isOpen={showTransferModal}
+        onClose={() => setShowTransferModal(false)}
+        onTransferComplete={handleTransferComplete}
+        currentBalance={currentPersona.balance}
+        userName={currentPersona.name}
+      />
+
+      {/* Detty December Modal - Shows after fun transfer */}
+      <DettyDecemberModal
+        isOpen={showDettyModal}
+        onClose={handleDettyModalClose}
+        onActivate={handleDettyActivate}
+        trackerTypes={[
+          "Entertainment vs. Savings Tracker",
+          "Food & Drinks Tracker",
+        ]}
+        isInitialPopup={true}
+      />
+
+      {/* Travel Reward Modal - Shows after flight purchase for Ngozi */}
+      <TravelRewardModal
+        isOpen={showTravelRewardModal}
+        onClose={handleTravelRewardModalClose}
+        partner="Air Peace Airlines"
+        discount="15%"
+        promoCode="AIRPEACE15"
+        expiryDate={new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000
+        ).toISOString()}
+      />
+
+      {/* Cool-off Modal - Shows when Tolu crosses 60% spending threshold */}
+      {cooloffFlowData && (
+        <CooloffModal
+          isOpen={showCooloffModal}
+          onClose={() => setShowCooloffModal(false)}
+          onActivate={handleCooloffActivate}
+          spendingPercentage={cooloffFlowData.spendingPercentage}
+          cooloffHours={cooloffFlowData.cooloffHours}
+          flowData={cooloffFlowData}
+        />
+      )}
     </div>
-  )
+  );
 }

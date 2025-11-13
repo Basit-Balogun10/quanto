@@ -1,111 +1,234 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { X, Check } from "lucide-react"
+import { useState } from "react";
+import { X, Check, Clock, ShieldCheck, TrendingDown } from "lucide-react";
+import { SpendingTimeline } from "../quanto/spending-timeline";
 
 interface CooloffModalProps {
-  isOpen: boolean
-  onClose: () => void
-  spendingPercentage: number
-  cooloffHours: number
+  isOpen: boolean;
+  onClose: () => void;
+  onActivate?: () => void;
+  spendingPercentage: number;
+  cooloffHours: number;
+  flowData?: {
+    salaryAmount?: number;
+    spent3Days?: number;
+    remaining?: number;
+    paydayDate?: string;
+    daysElapsed?: number;
+    breakdown?: Array<{
+      day: number;
+      date: string;
+      amount: number;
+      description: string;
+    }>;
+    largestPurchase?: {
+      vendor: string;
+      amount: number;
+      date: string;
+    };
+  };
 }
 
-export function CooloffModal({ isOpen, onClose, spendingPercentage, cooloffHours }: CooloffModalProps) {
-  const [showConfirmation, setShowConfirmation] = useState(false)
-  const [autoReminder, setAutoReminder] = useState(true)
+export function CooloffModal({
+  isOpen,
+  onClose,
+  onActivate,
+  spendingPercentage,
+  cooloffHours,
+  flowData,
+}: CooloffModalProps) {
+  const [step, setStep] = useState<"overview" | "timeline" | "confirmation">(
+    "overview"
+  );
+  const [autoReminder, setAutoReminder] = useState(true);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
-  const handleSetup = () => {
-    setShowConfirmation(true)
+  const handleActivate = () => {
+    setStep("confirmation");
     setTimeout(() => {
-      setShowConfirmation(false)
-      onClose()
-    }, 2000)
-  }
+      if (onActivate) onActivate();
+      setTimeout(() => {
+        setStep("overview");
+        onClose();
+      }, 2000);
+    }, 500);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-zinc-900 rounded-2xl max-w-md w-full border border-zinc-800 overflow-hidden">
-        {!showConfirmation ? (
-          <>
-            <div className="bg-indigo-950/50 border-b border-indigo-900/50 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-zinc-50">24-Hour Cool-Off Mode</h3>
-              <button onClick={onClose} className="text-zinc-400 hover:text-zinc-50">
-                <X size={24} />
-              </button>
-            </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-zinc-900 w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slide-up border border-zinc-800">
+        {/* Header */}
+        <div className="sticky top-0 bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-zinc-50">Cool-off Period</h3>
+            <p className="text-sm text-zinc-400">Protect your budget</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center hover:bg-zinc-700 transition-colors"
+          >
+            <X className="w-5 h-5 text-zinc-400" />
+          </button>
+        </div>
 
-            <div className="p-6 space-y-6">
-              <div className="space-y-4">
-                <p className="text-sm text-zinc-300">
-                  You've spent <span className="font-bold text-white">{spendingPercentage}%</span> of your salary within
-                  3 days. This cool-off feature will help you make more mindful spending decisions.
-                </p>
-
-                <div className="bg-indigo-950/30 border border-indigo-900/50 rounded-lg p-4 space-y-3">
-                  <h4 className="text-sm font-semibold text-indigo-300">What cool-off does:</h4>
-                  <ul className="space-y-2 text-xs text-zinc-300">
-                    <li className="flex items-start gap-2">
-                      <span className="text-indigo-400 mt-1">•</span>
-                      <span>Nudges you before purchases over ₦50,000</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-indigo-400 mt-1">•</span>
-                      <span>Suggests waiting 24 hours for non-essential items</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-indigo-400 mt-1">•</span>
-                      <span>Shows your spending breakdown daily</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-indigo-400 mt-1">•</span>
-                      <span>Expires automatically in {cooloffHours} hours</span>
-                    </li>
-                  </ul>
+        {/* Content */}
+        <div className="p-6">
+          {step === "overview" && (
+            <div className="space-y-6">
+              {/* Alert Banner */}
+              <div className="bg-red-950 border border-red-900 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <TrendingDown className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-red-100 mb-1">
+                      Rapid Spending Detected
+                    </p>
+                    <p className="text-sm text-red-200">
+                      You've spent {spendingPercentage}% of your salary in just
+                      3 days
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-3 bg-zinc-800/50 rounded-lg p-4">
+              {/* What is Cool-off */}
+              <div>
+                <h4 className="font-semibold text-zinc-50 mb-3">
+                  What's a Cool-off Period?
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 bg-blue-900/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-zinc-50">24-hour pause</p>
+                      <p className="text-sm text-zinc-400">
+                        Before making purchases over ₦50,000, you'll get a
+                        gentle reminder to wait 24 hours
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 bg-green-900/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <ShieldCheck className="w-4 h-4 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-zinc-50">
+                        Impulse protection
+                      </p>
+                      <p className="text-sm text-zinc-400">
+                        Helps you avoid rushed decisions and stick to your
+                        budget
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 bg-purple-900/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg">🎯</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-zinc-50">
+                        You're still in control
+                      </p>
+                      <p className="text-sm text-zinc-400">
+                        This is a nudge, not a block. You can turn it off
+                        anytime
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Auto-reminder toggle */}
+              <div className="bg-zinc-800/50 rounded-lg p-4">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={autoReminder}
                     onChange={(e) => setAutoReminder(e.target.checked)}
-                    className="w-4 h-4 rounded border-zinc-600 accent-indigo-600"
+                    className="w-4 h-4 rounded border-zinc-600 text-blue-600 focus:ring-blue-600 focus:ring-offset-zinc-900"
                   />
-                  <span className="text-sm text-zinc-300">Enable auto-reminders for big purchases</span>
+                  <span className="text-sm text-zinc-300">
+                    Enable auto-reminders for big purchases
+                  </span>
                 </label>
               </div>
 
-              <div className="flex gap-3">
+              {/* CTA Buttons */}
+              <div className="space-y-3 pt-4">
                 <button
-                  onClick={onClose}
-                  className="flex-1 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 rounded-lg font-medium transition-colors"
+                  onClick={() => setStep("timeline")}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-4 font-semibold transition-colors"
                 >
-                  Not now
+                  View Spending Breakdown
                 </button>
                 <button
-                  onClick={handleSetup}
-                  className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+                  onClick={onClose}
+                  className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl py-4 font-semibold transition-colors"
                 >
-                  Set it up
+                  Maybe Later
                 </button>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="px-6 py-8 text-center space-y-4">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto animate-pulse">
-              <Check size={32} className="text-green-400" />
+          )}
+
+          {step === "timeline" && flowData && (
+            <div className="space-y-6">
+              <SpendingTimeline
+                salaryAmount={flowData.salaryAmount || 150000}
+                spent3Days={flowData.spent3Days || 90000}
+                spendingPercentage={spendingPercentage}
+                paydayDate={flowData.paydayDate || "2025-11-10"}
+                breakdown={flowData.breakdown || []}
+                largestPurchase={
+                  flowData.largestPurchase || {
+                    vendor: "Unknown",
+                    amount: 0,
+                    date: "N/A",
+                  }
+                }
+              />
+
+              {/* Action Buttons */}
+              <div className="space-y-3 pt-4">
+                <button
+                  onClick={handleActivate}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-4 font-semibold transition-all transform active:scale-95"
+                >
+                  Yes, Activate Cool-off ✨
+                </button>
+                <button
+                  onClick={() => setStep("overview")}
+                  className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl py-4 font-semibold transition-colors"
+                >
+                  Back
+                </button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-zinc-50">Cool-off activated</h3>
-              <p className="text-sm text-zinc-400">We'll nudge you if you try large spends within 24 hours.</p>
+          )}
+
+          {step === "confirmation" && (
+            <div className="py-12 text-center">
+              <div className="w-20 h-20 bg-green-900/30 border-2 border-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-scale-in">
+                <Check className="w-10 h-10 text-green-400" />
+              </div>
+              <h4 className="text-2xl font-bold text-zinc-50 mb-2">
+                Cool-off Activated!
+              </h4>
+              <p className="text-zinc-400">
+                We'll nudge you before big purchases for the next 24 hours
+              </p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,4 +1,10 @@
-import type { Persona, Transaction, QuantoInsight, AdminControls, QuickAction } from "./types"
+import type {
+  Persona,
+  Transaction,
+  QuantoInsight,
+  AdminControls,
+  QuickAction,
+} from "./types";
 
 export const personas: Record<string, Persona> = {
   user_ada_f4k9: {
@@ -94,7 +100,8 @@ export const personas: Record<string, Persona> = {
         id: "flow_salary_delay",
         category: "empathetic",
         title: "Salary Delayed?",
-        message: "We noticed your salary hasn't arrived yet. You'll enjoy free transactions for the next 24 hours.",
+        message:
+          "We noticed your salary hasn't arrived yet. You'll enjoy free transactions for the next 24 hours.",
         actionLabel: "See eligible transactions",
         priority: "high",
         timestamp: new Date(Date.now() - 3600000).toISOString(),
@@ -116,9 +123,24 @@ export const personas: Record<string, Persona> = {
     currentSpend: 57000,
     savingsStreak: 0,
     subscriptionData: [
-      { name: "Netflix", amount: 2400, renewalDate: "2025-11-15", enabled: true },
-      { name: "Apple Music", amount: 1800, renewalDate: "2025-11-15", enabled: true },
-      { name: "Canva Pro", amount: 2900, renewalDate: "2025-11-14", enabled: true },
+      {
+        name: "Netflix",
+        amount: 2400,
+        renewalDate: "2025-11-15",
+        enabled: true,
+      },
+      {
+        name: "Apple Music",
+        amount: 1800,
+        renewalDate: "2025-11-15",
+        enabled: true,
+      },
+      {
+        name: "Canva Pro",
+        amount: 2900,
+        renewalDate: "2025-11-14",
+        enabled: true,
+      },
     ],
     month: 11,
     transactions: [
@@ -207,7 +229,11 @@ export const personas: Record<string, Persona> = {
         timestamp: new Date(Date.now() - 3600000).toISOString(),
         read: false,
         flowType: "subscription_warning",
-        flowData: { renewalDate: "2025-11-15", subscriptions: 3, totalAmount: 7100 },
+        flowData: {
+          renewalDate: "2025-11-15",
+          subscriptions: 3,
+          totalAmount: 7100,
+        },
       },
     ],
   },
@@ -223,7 +249,10 @@ export const personas: Record<string, Persona> = {
     currentSpend: 40000,
     savingsStreak: 1,
     month: 12,
-    recentFlightPurchase: true,
+    recentFlightPurchase: false,
+    activatedFeatures: {
+      travelReward: false,
+    },
     transactions: [
       {
         id: "tx_1",
@@ -298,25 +327,7 @@ export const personas: Record<string, Persona> = {
         icon: "🚕",
       },
     ],
-    quantoResponses: [
-      {
-        id: "flow_reward",
-        category: "reward",
-        title: "Exclusive Travel Offer",
-        message: "Flying soon! You just unlocked 15% off your travel ticket for your next trip. Bon air ✈️",
-        actionLabel: "View offer",
-        priority: "medium",
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        read: false,
-        flowType: "reward_offer",
-        flowData: {
-          partner: "Air Peace",
-          discount: "15%",
-          promoCode: "AIRPEACE15",
-          expiryDate: "2025-12-31",
-        },
-      },
-    ],
+    quantoResponses: [],
   },
   user_tolu_6x2k: {
     id: "user_tolu_6x2k",
@@ -325,85 +336,157 @@ export const personas: Record<string, Persona> = {
     accountNumber: "9876543210",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Tolu",
     email: "tolu.okafor@email.com",
-    balance: 280000,
+    balance: 205000, // 145k existing + 150k salary - 90k spent = 205k
     usualMonthlySpend: 65000,
-    currentSpend: 41000,
+    currentSpend: 88500, // 59% of 150k - just below threshold
     savingsStreak: 0,
-    spendingInThreeDays: 180000,
+    spendingInThreeDays: 88500,
     lastSalaryDate: "2025-11-10",
+    lastSalaryAmount: 150000,
     month: 11,
+    activatedFeatures: {
+      cooloffPeriod: false,
+    },
     transactions: [
+      // ===== DAY 3 (Nov 12 - Today) - CLOSE TO THRESHOLD =====
       {
-        id: "tx_1",
+        id: "tx_12_3",
         date: "2025-11-12",
-        vendor: "Coffee Meeting",
-        amount: 2500,
+        vendor: "Freelance Equipment",
+        amount: 15000,
+        category: "shopping",
+        type: "debit",
+        icon: "🎧",
+      },
+      {
+        id: "tx_12_2",
+        date: "2025-11-12",
+        vendor: "Internet Bill",
+        amount: 9400,
+        category: "utilities",
+        type: "debit",
+        icon: "📡",
+      },
+      {
+        id: "tx_12_1",
+        date: "2025-11-12",
+        vendor: "Client Lunch",
+        amount: 6100,
         category: "dining",
         type: "debit",
-        icon: "☕",
+        icon: "🍽️",
       },
+      // ===== DAY 2 (Nov 11) - Heavy spending continues =====
       {
-        id: "tx_2",
+        id: "tx_11_3",
         date: "2025-11-11",
-        vendor: "Client Payment",
-        amount: 150000,
-        category: "income",
-        type: "credit",
-        icon: "💼",
-      },
-      {
-        id: "tx_3",
-        date: "2025-11-10",
-        vendor: "Software Subscription",
-        amount: 8900,
+        vendor: "Adobe Creative Cloud",
+        amount: 12900,
         category: "utilities",
         type: "debit",
         icon: "💻",
       },
       {
-        id: "tx_4",
-        date: "2025-11-09",
-        vendor: "Office Supplies",
-        amount: 6200,
+        id: "tx_11_2",
+        date: "2025-11-11",
+        vendor: "Camera Equipment Store",
+        amount: 25000,
         category: "shopping",
         type: "debit",
-        icon: "📝",
+        icon: "📷",
       },
       {
-        id: "tx_5",
-        date: "2025-11-08",
+        id: "tx_11_1",
+        date: "2025-11-11",
         vendor: "Co-working Space",
         amount: 12000,
         category: "services",
         type: "debit",
         icon: "🏢",
       },
+      // ===== DAY 1 (Nov 10) - Payday spending spree =====
       {
-        id: "tx_6",
+        id: "tx_10_4",
+        date: "2025-11-10",
+        vendor: "Office Supplies",
+        amount: 7200,
+        category: "shopping",
+        type: "debit",
+        icon: "📝",
+      },
+      {
+        id: "tx_10_3",
+        date: "2025-11-10",
+        vendor: "Celebration Dinner",
+        amount: 18500,
+        category: "dining",
+        type: "debit",
+        icon: "🥘",
+      },
+      {
+        id: "tx_10_2",
+        date: "2025-11-10",
+        vendor: "Uber Trips",
+        amount: 4500,
+        category: "transport",
+        type: "debit",
+        icon: "🚗",
+      },
+      // ===== PAYDAY (Nov 10) - Salary arrives =====
+      {
+        id: "tx_10_1_salary",
+        date: "2025-11-10",
+        vendor: "Client Payment - Web Design",
+        amount: 150000,
+        category: "income",
+        type: "credit",
+        icon: "💼",
+      },
+      // ===== BEFORE PAYDAY (Nov 5-9) - Low balance period =====
+      {
+        id: "tx_09",
+        date: "2025-11-09",
+        vendor: "Coffee Shop",
+        amount: 2500,
+        category: "dining",
+        type: "debit",
+        icon: "☕",
+      },
+      {
+        id: "tx_08",
+        date: "2025-11-08",
+        vendor: "Airtime Topup",
+        amount: 1000,
+        category: "utilities",
+        type: "debit",
+        icon: "📞",
+      },
+      {
+        id: "tx_07",
         date: "2025-11-07",
-        vendor: "Client Payment",
-        amount: 120000,
+        vendor: "Small Client Payment",
+        amount: 35000,
         category: "income",
         type: "credit",
         icon: "💼",
       },
       {
-        id: "tx_7",
+        id: "tx_06",
         date: "2025-11-06",
-        vendor: "Internet Bill",
-        amount: 5000,
-        category: "utilities",
+        vendor: "Transport",
+        amount: 3500,
+        category: "transport",
         type: "debit",
-        icon: "📡",
+        icon: "🚕",
       },
       {
-        id: "tx_8",
+        id: "tx_05",
         date: "2025-11-05",
-        vendor: "Equipment Purchase",
-        amount: 45000,
+        vendor: "Grocery Shopping",
+        amount: 8900,
         category: "shopping",
         type: "debit",
-        icon: "⚙️",
+        icon: "🛒",
       },
     ],
     quantoResponses: [
@@ -412,13 +495,47 @@ export const personas: Record<string, Persona> = {
         category: "educational",
         title: "Spending Alert",
         message:
-          "You've spent 60% of your salary within 3 days. Setting a 24-hour 'cool-off' before big spends could help your budget go further. Want me to set it up?",
-        actionLabel: "Activate cool-off",
+          "You're at 59% of your ₦150,000 salary in just 3 days. One more purchase could push you over 60%. Want to set up a cool-off period?",
+        actionLabel: "Learn more",
         priority: "high",
         timestamp: new Date(Date.now() - 3600000).toISOString(),
         read: false,
         flowType: "spending_cooloff",
-        flowData: { cooloffHours: 24, spendingPercentage: 60 },
+        flowData: {
+          cooloffHours: 24,
+          spendingPercentage: 59,
+          salaryAmount: 150000,
+          spent3Days: 88500,
+          remaining: 61500,
+          paydayDate: "2025-11-10",
+          daysElapsed: 3,
+          averageDailySpend: 29500,
+          breakdown: [
+            {
+              day: 1,
+              date: "Nov 10",
+              amount: 30200,
+              description: "Payday celebrations",
+            },
+            {
+              day: 2,
+              date: "Nov 11",
+              amount: 49900,
+              description: "Business investments",
+            },
+            {
+              day: 3,
+              date: "Nov 12",
+              amount: 30500,
+              description: "Equipment & utilities",
+            },
+          ],
+          largestPurchase: {
+            vendor: "Camera Equipment Store",
+            amount: 25000,
+            date: "2025-11-11",
+          },
+        },
       },
     ],
   },
@@ -434,6 +551,11 @@ export const personas: Record<string, Persona> = {
     currentSpend: 95000,
     savingsStreak: 3,
     month: 12,
+    hasDettyDecemberTrigger: false,
+    recentFunTransfers: [],
+    activatedFeatures: {
+      dettyDecemberTracker: false,
+    },
     transactions: [
       {
         id: "tx_1",
@@ -520,20 +642,97 @@ export const personas: Record<string, Persona> = {
         timestamp: new Date(Date.now() - 3600000).toISOString(),
         read: false,
         flowType: "detty_december",
-        flowData: { trackerTypes: ["Entertainment vs. Savings", "Food & Drinks"] },
+        flowData: {
+          trackerTypes: ["Entertainment vs. Savings", "Food & Drinks"],
+        },
       },
     ],
   },
-}
+};
 
 export const quickActions: QuickAction[] = [
-  { id: "pay_bills", label: "Pay Bills", icon: "📱", description: "Utilities, subscriptions" },
-  { id: "buy_airtime", label: "Buy Airtime", icon: "📞", description: "Phone credit" },
-  { id: "buy_data", label: "Buy Data", icon: "📡", description: "Internet plans" },
-  { id: "service_subscriptions", label: "Subscriptions", icon: "🎬", description: "Streaming, apps" },
+  {
+    id: "pay_bills",
+    label: "Pay Bills",
+    icon: "📱",
+    description: "Utilities, subscriptions",
+  },
+  {
+    id: "buy_airtime",
+    label: "Buy Airtime",
+    icon: "📞",
+    description: "Phone credit",
+  },
+  {
+    id: "buy_data",
+    label: "Buy Data",
+    icon: "📡",
+    description: "Internet plans",
+  },
+  {
+    id: "service_subscriptions",
+    label: "Subscriptions",
+    icon: "🎬",
+    description: "Streaming, apps",
+  },
   { id: "transfer", label: "Transfer", icon: "➡️", description: "Send money" },
-  { id: "investments", label: "Invest", icon: "📈", description: "Grow your money" },
-]
+  {
+    id: "investments",
+    label: "Invest",
+    icon: "📈",
+    description: "Grow your money",
+  },
+];
+
+// Mock beneficiaries for transfers
+export const mockBeneficiaries = [
+  {
+    id: "ben_1",
+    name: "Chidi Okafor",
+    bank: "GTBank",
+    accountNumber: "0123456789",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Chidi",
+  },
+  {
+    id: "ben_2",
+    name: "Amara Nwosu",
+    bank: "Access Bank",
+    accountNumber: "0234567890",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Amara",
+  },
+  {
+    id: "ben_3",
+    name: "Air Peace Airlines",
+    bank: "Wema Bank",
+    accountNumber: "0345678901",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=AirPeace",
+    isAirline: true,
+  },
+  {
+    id: "ben_4",
+    name: "Dana Air",
+    bank: "Zenith Bank",
+    accountNumber: "0456789012",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=DanaAir",
+    isAirline: true,
+  },
+  {
+    id: "ben_5",
+    name: "Arik Air",
+    bank: "First Bank",
+    accountNumber: "0567890123",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=ArikAir",
+    isAirline: true,
+  },
+  {
+    id: "ben_6",
+    name: "Wakanow Travel",
+    bank: "GTBank",
+    accountNumber: "0678901234",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wakanow",
+    isTravel: true,
+  },
+];
 
 export const mockUser = {
   id: "user_1",
@@ -579,7 +778,7 @@ export const mockUser = {
       color: "from-purple-600 to-purple-800",
     },
   ],
-}
+};
 
 export const recentTransactions: Transaction[] = [
   {
@@ -654,14 +853,15 @@ export const recentTransactions: Transaction[] = [
     type: "debit",
     icon: "💪",
   },
-]
+];
 
 export const quantoInsights: QuantoInsight[] = [
   {
     id: "insight_1",
     category: "preventive",
     title: "Spending Alert",
-    message: "You're on pace to exceed your usual monthly dining budget. Consider cutting back.",
+    message:
+      "You're on pace to exceed your usual monthly dining budget. Consider cutting back.",
     actionLabel: "View details",
     priority: "medium",
     timestamp: new Date(Date.now() - 3600000).toISOString(),
@@ -671,7 +871,8 @@ export const quantoInsights: QuantoInsight[] = [
     id: "insight_2",
     category: "reward",
     title: "Cashback Available",
-    message: "You've earned ₦2,500 in cashback this month. Redeem now or let it accumulate.",
+    message:
+      "You've earned ₦2,500 in cashback this month. Redeem now or let it accumulate.",
     actionLabel: "Redeem",
     priority: "low",
     timestamp: new Date(Date.now() - 7200000).toISOString(),
@@ -681,13 +882,14 @@ export const quantoInsights: QuantoInsight[] = [
     id: "insight_3",
     category: "educational",
     title: "Savings Tip",
-    message: "Automating your savings to 10% of each paycheck could help you reach your goals faster.",
+    message:
+      "Automating your savings to 10% of each paycheck could help you reach your goals faster.",
     actionLabel: "Set up auto-save",
     priority: "low",
     timestamp: new Date(Date.now() - 86400000).toISOString(),
     read: true,
   },
-]
+];
 
 export const defaultAdminControls: AdminControls = {
   enabledCategories: {
@@ -731,7 +933,7 @@ export const defaultAdminControls: AdminControls = {
       enabled: true,
     },
   ],
-}
+};
 
 export const quantoResponses = {
   salary_delay: {
@@ -769,4 +971,4 @@ export const quantoResponses = {
     explanation: "Pattern-based spending alert",
     actionLabel: "Set limit",
   },
-}
+};
