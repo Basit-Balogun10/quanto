@@ -1,8 +1,8 @@
 "use client";
 
-import type { Persona, QuantoInsight } from "@/lib/types";
-import { ChevronRight, Eye, EyeOff, Send, Zap } from "lucide-react";
-import { useState } from "react";
+import type { Persona, QuantoInsight, Campaign } from "@/lib/types";
+import { ChevronRight, Eye, EyeOff, Send, Zap, Gift, TrendingUp, X } from "lucide-react";
+import { useState, useEffect } from "react";
 import { QuantoCard } from "@/components/quanto/quanto-card";
 import { quickActions } from "@/lib/mock-data";
 import {
@@ -27,6 +27,32 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
   const [showTravelRewardCard, setShowTravelRewardCard] = useState(false);
   const [showCooloffModal, setShowCooloffModal] = useState(false);
   const [cooloffFlowData, setCooloffFlowData] = useState<any>(null);
+  const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([]);
+  const [dismissedCampaigns, setDismissedCampaigns] = useState<string[]>([]);
+
+  // Load campaigns from localStorage and filter for this user
+  useEffect(() => {
+    const loadCampaigns = () => {
+      const savedCampaigns = JSON.parse(localStorage.getItem("quantoCampaigns") || "[]");
+      const userQualifiedCampaigns = savedCampaigns.filter((campaign: Campaign) => 
+        campaign.enabled && 
+        campaign.qualifiedUserIds?.includes(currentPersona.id) &&
+        !dismissedCampaigns.includes(campaign.id)
+      );
+      setActiveCampaigns(userQualifiedCampaigns);
+    };
+
+    loadCampaigns();
+
+    // Poll for campaign updates every 2 seconds
+    const interval = setInterval(loadCampaigns, 2000);
+
+    return () => clearInterval(interval);
+  }, [currentPersona.id, dismissedCampaigns]);
+
+  const handleDismissCampaign = (campaignId: string) => {
+    setDismissedCampaigns(prev => [...prev, campaignId]);
+  };
 
   // Filter out the detty december insight and travel reward from regular display initially
   let displayInsights = currentPersona.quantoResponses;
@@ -299,6 +325,54 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
           </div>
         </div>
       </div>
+
+      {/* Campaign Banners */}
+      {activeCampaigns.map((campaign) => (
+        <div
+          key={campaign.id}
+          className="relative bg-gradient-to-br from-purple-600/20 to-blue-600/20 border border-purple-500/30 rounded-2xl p-6 overflow-hidden"
+        >
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
+          
+          <div className="relative">
+            <button
+              onClick={() => handleDismissCampaign(campaign.id)}
+              className="absolute -top-2 -right-2 w-8 h-8 bg-zinc-800/80 hover:bg-zinc-700 rounded-full flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4 text-zinc-400" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Gift className="w-6 h-6 text-white" />
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white mb-2">{campaign.name}</h3>
+                <p className="text-sm text-zinc-300 mb-4">{campaign.message}</p>
+                
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center gap-2 text-xs">
+                    <TrendingUp className="w-4 h-4 text-green-400" />
+                    <span className="text-zinc-400">
+                      <span className="text-green-400 font-semibold">{campaign.reward.value}%</span> {campaign.reward.type}
+                    </span>
+                  </div>
+                  <div className="text-xs text-zinc-500">
+                    • {campaign.reward.description}
+                  </div>
+                </div>
+
+                <button className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-purple-500/20">
+                  Claim Reward
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
 
       {/* Quick Actions Grid */}
       <div>

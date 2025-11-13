@@ -687,7 +687,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-zinc-50">
-                  Basit Balogun
+                  AbdulBaseet Mustapha
                 </h3>
                 <p className="text-sm text-zinc-400">AI/ML Engineer</p>
               </div>
@@ -701,7 +701,7 @@ export default function LandingPage() {
                 AM
               </div>
               <div>
-                <h3 className="text-lg font-bold text-zinc-50">Akanni Muhiz</h3>
+                <h3 className="text-lg font-bold text-zinc-50">Ononobi Praise</h3>
                 <p className="text-sm text-zinc-400">Full Stack Engineer</p>
               </div>
               <p className="text-sm text-zinc-500 leading-relaxed">
@@ -715,7 +715,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-zinc-50">
-                  Lawal Abdullateef
+                  AbdulMujeeb Lawal
                 </h3>
                 <p className="text-sm text-zinc-400">Project Manager</p>
               </div>

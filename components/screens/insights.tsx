@@ -1,8 +1,8 @@
 "use client"
 
-import type { Persona } from "@/lib/types"
-import { Search } from "lucide-react"
-import { useState } from "react"
+import type { Persona, Campaign } from "@/lib/types"
+import { Search, Gift, TrendingUp, Sparkles } from "lucide-react"
+import { useState, useEffect } from "react"
 import { QuantoCard } from "@/components/quanto/quanto-card"
 
 interface InsightsScreenProps {
@@ -12,6 +12,26 @@ interface InsightsScreenProps {
 export function InsightsScreen({ persona }: InsightsScreenProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([])
+
+  // Load campaigns from localStorage and filter for this user
+  useEffect(() => {
+    const loadCampaigns = () => {
+      const savedCampaigns = JSON.parse(localStorage.getItem("quantoCampaigns") || "[]");
+      const userQualifiedCampaigns = savedCampaigns.filter((campaign: Campaign) => 
+        campaign.enabled && 
+        campaign.qualifiedUserIds?.includes(persona.id)
+      );
+      setActiveCampaigns(userQualifiedCampaigns);
+    };
+
+    loadCampaigns();
+
+    // Poll for campaign updates every 2 seconds
+    const interval = setInterval(loadCampaigns, 2000);
+
+    return () => clearInterval(interval);
+  }, [persona.id]);
 
   const categories = ["empathetic", "preventive", "reward", "educational", "ambient"] as const
 
@@ -65,6 +85,52 @@ export function InsightsScreen({ persona }: InsightsScreenProps) {
           ))}
         </div>
       </div>
+
+      {/* Active Campaigns Section */}
+      {activeCampaigns.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-400" />
+            <h3 className="text-lg font-semibold text-zinc-50">Exclusive Offers for You</h3>
+          </div>
+          
+          <div className="grid gap-4">
+            {activeCampaigns.map((campaign) => (
+              <div
+                key={campaign.id}
+                className="bg-gradient-to-br from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl p-5 hover:border-purple-500/40 transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Gift className="w-6 h-6 text-white" />
+                  </div>
+                  
+                  <div className="flex-1">
+                    <h4 className="text-base font-bold text-white mb-1">{campaign.name}</h4>
+                    <p className="text-sm text-zinc-300 mb-3">{campaign.message}</p>
+                    
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full">
+                        <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                        <span className="text-xs font-semibold text-green-400">
+                          {campaign.reward.value}% {campaign.reward.type}
+                        </span>
+                      </div>
+                      <span className="text-xs text-zinc-400">
+                        {campaign.reward.description}
+                      </span>
+                    </div>
+
+                    <button className="px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-sm rounded-lg font-medium transition-all shadow-lg shadow-purple-500/20">
+                      Claim Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Insights List - Removed category legend */}
       <div className="space-y-4">

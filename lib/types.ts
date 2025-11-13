@@ -79,9 +79,32 @@ export type Rule = {
   enabled: boolean;
 };
 
+export type Campaign = {
+  id: string;
+  name: string;
+  message: string;
+  criteria: {
+    type: "spending" | "transactions" | "balance" | "category";
+    operator: "greater_than" | "less_than" | "equals";
+    value: number;
+    category?: string;
+  };
+  reward: {
+    type: "cashback" | "discount" | "freebie";
+    value: number; // percentage or amount
+    description: string;
+  };
+  enabled: boolean;
+  createdAt: string;
+  qualifiedUserIds?: string[];
+  estimatedReach?: number;
+  estimatedCost?: number;
+};
+
 export type AdminControls = {
   enabledCategories: Record<Category, boolean>;
   rules: Rule[];
+  campaigns?: Campaign[];
 };
 
 export type Persona = {
