@@ -937,7 +937,8 @@ export const defaultAdminControls: AdminControls = {
     {
       id: "campaign_1",
       name: "Premium Spenders Cashback",
-      message: "You've spent over ₦400,000! Enjoy 10% cashback on your next purchase.",
+      message:
+        "You've spent over ₦400,000! Enjoy 10% cashback on your next purchase.",
       criteria: {
         type: "spending",
         operator: "greater_than",

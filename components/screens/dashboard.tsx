@@ -1,7 +1,16 @@
 "use client";
 
 import type { Persona, QuantoInsight, Campaign } from "@/lib/types";
-import { ChevronRight, Eye, EyeOff, Send, Zap, Gift, TrendingUp, X } from "lucide-react";
+import {
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Send,
+  Zap,
+  Gift,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { QuantoCard } from "@/components/quanto/quanto-card";
 import { quickActions } from "@/lib/mock-data";
@@ -33,11 +42,14 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
   // Load campaigns from localStorage and filter for this user
   useEffect(() => {
     const loadCampaigns = () => {
-      const savedCampaigns = JSON.parse(localStorage.getItem("quantoCampaigns") || "[]");
-      const userQualifiedCampaigns = savedCampaigns.filter((campaign: Campaign) => 
-        campaign.enabled && 
-        campaign.qualifiedUserIds?.includes(currentPersona.id) &&
-        !dismissedCampaigns.includes(campaign.id)
+      const savedCampaigns = JSON.parse(
+        localStorage.getItem("quantoCampaigns") || "[]"
+      );
+      const userQualifiedCampaigns = savedCampaigns.filter(
+        (campaign: Campaign) =>
+          campaign.enabled &&
+          campaign.qualifiedUserIds?.includes(currentPersona.id) &&
+          !dismissedCampaigns.includes(campaign.id)
       );
       setActiveCampaigns(userQualifiedCampaigns);
     };
@@ -51,7 +63,7 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
   }, [currentPersona.id, dismissedCampaigns]);
 
   const handleDismissCampaign = (campaignId: string) => {
-    setDismissedCampaigns(prev => [...prev, campaignId]);
+    setDismissedCampaigns((prev) => [...prev, campaignId]);
   };
 
   // Filter out the detty december insight and travel reward from regular display initially
@@ -335,7 +347,7 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
           {/* Background decoration */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
-          
+
           <div className="relative">
             <button
               onClick={() => handleDismissCampaign(campaign.id)}
@@ -348,16 +360,21 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Gift className="w-6 h-6 text-white" />
               </div>
-              
+
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-white mb-2">{campaign.name}</h3>
+                <h3 className="text-lg font-bold text-white mb-2">
+                  {campaign.name}
+                </h3>
                 <p className="text-sm text-zinc-300 mb-4">{campaign.message}</p>
-                
+
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex items-center gap-2 text-xs">
                     <TrendingUp className="w-4 h-4 text-green-400" />
                     <span className="text-zinc-400">
-                      <span className="text-green-400 font-semibold">{campaign.reward.value}%</span> {campaign.reward.type}
+                      <span className="text-green-400 font-semibold">
+                        {campaign.reward.value}%
+                      </span>{" "}
+                      {campaign.reward.type}
                     </span>
                   </div>
                   <div className="text-xs text-zinc-500">
