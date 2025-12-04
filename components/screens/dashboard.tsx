@@ -1,6 +1,6 @@
 "use client";
 
-import type { Persona, QuantoInsight, Campaign } from "@/lib/types";
+import type { Persona, QuantoInsight, Campaign, StressMetrics } from "@/lib/types";
 import {
   ChevronRight,
   Eye,
@@ -21,6 +21,7 @@ import {
 import { DettyDecemberModal } from "@/components/modals/detty-december-modal";
 import { TravelRewardModal } from "@/components/modals/travel-reward-modal";
 import { CooloffModal } from "@/components/modals/cooloff-modal";
+import { StressDetectionModal } from "@/components/modals/stress-detection-modal";
 
 interface DashboardScreenProps {
   persona: Persona;
@@ -38,6 +39,11 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
   const [cooloffFlowData, setCooloffFlowData] = useState<any>(null);
   const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([]);
   const [dismissedCampaigns, setDismissedCampaigns] = useState<string[]>([]);
+  const [showStressModal, setShowStressModal] = useState(false);
+  const [stressFlowData, setStressFlowData] = useState<{
+    metrics: StressMetrics;
+    transferData: TransferData;
+  } | null>(null);
 
   // Load campaigns from localStorage and filter for this user
   useEffect(() => {
@@ -55,6 +61,23 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
     };
 
     loadCampaigns();
+
+    // Restore any persisted freeze state for this persona
+    try {
+      const stored = localStorage.getItem(`quanto_freeze_until_${currentPersona.id}`);
+      if (stored) {
+        const updatedPersona = {
+          ...currentPersona,
+          activatedFeatures: {
+            ...currentPersona.activatedFeatures,
+            freezeUntil: stored,
+          },
+        };
+        setCurrentPersona(updatedPersona);
+      }
+    } catch (err) {
+      // ignore
+    }
 
     // Poll for campaign updates every 2 seconds
     const interval = setInterval(loadCampaigns, 2000);
@@ -84,6 +107,15 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
   const topInsight = displayInsights[0];
 
   const handleTransferComplete = (transferData: TransferData) => {
+    // Prevent completing transfers if persona has active freeze
+    const freezeUntil = currentPersona.activatedFeatures?.freezeUntil;
+    if (freezeUntil && Date.now() < new Date(freezeUntil).getTime()) {
+      const remainingMs = new Date(freezeUntil).getTime() - Date.now();
+      const mins = Math.ceil(remainingMs / 60000);
+      alert(`Transfers are frozen for another ${mins} minute(s). This transfer was not completed.`);
+      return;
+    }
+
     // Update persona balance
     const newBalance = currentPersona.balance - transferData.amount;
 
@@ -300,9 +332,93 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
     setCurrentPersona(updatedPersona);
   };
 
+  const handleStressDetected = (
+    metrics: StressMetrics,
+    transferData: TransferData
+  ) => {
+    // High stress detected during transfer - show modal
+    setStressFlowData({ metrics, transferData });
+    setShowStressModal(true);
+  };
+
+  const handleStressFreeze = () => {
+    // User chose to freeze account for 15 minutes
+    const freezeUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    // Update persona state to include freezeUntil
+    const updatedPersona = {
+      ...currentPersona,
+      activatedFeatures: {
+        ...currentPersona.activatedFeatures,
+        freezeUntil,
+      },
+    };
+    setCurrentPersona(updatedPersona);
+
+    // Persist freeze info to localStorage so it survives reloads during testing
+    try {
+      localStorage.setItem(`quanto_freeze_until_${updatedPersona.id}`, freezeUntil);
+    } catch (err) {
+      console.warn("Could not persist freezeUntil", err);
+    }
+
+    setShowStressModal(false);
+    setShowTransferModal(false);
+    setStressFlowData(null);
+
+    alert("Account temporarily frozen for 15 minutes. You can review this transfer when you feel ready.");
+  };
+
+  const handleStressContinue = () => {
+    // User acknowledged stress but wants to continue
+    if (stressFlowData) {
+      setShowStressModal(false);
+      setShowTransferModal(false);
+
+      // Complete the transfer
+      handleTransferComplete(stressFlowData.transferData);
+      setStressFlowData(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="relative">
+        {/* Freeze banner - shows when persona has an active freeze */}
+        {currentPersona.activatedFeatures?.freezeUntil && Date.now() < new Date(currentPersona.activatedFeatures.freezeUntil).getTime() && (
+          <div className="mb-4 p-4 bg-amber-900/20 border border-amber-800 rounded-lg text-amber-200 flex items-center justify-between">
+            <div>
+              <div className="font-semibold">Account temporarily frozen</div>
+              <div className="text-sm text-amber-200/80">Transfers are disabled for a short time to protect your account.</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-sm">
+                {Math.ceil((new Date(currentPersona.activatedFeatures.freezeUntil).getTime() - Date.now()) / 60000)}m left
+              </div>
+              <button
+                onClick={() => {
+                  // Clear freeze immediately
+                  const updatedPersona = {
+                    ...currentPersona,
+                    activatedFeatures: {
+                      ...currentPersona.activatedFeatures,
+                    },
+                  };
+                  delete (updatedPersona.activatedFeatures as any).freezeUntil;
+                  setCurrentPersona(updatedPersona);
+                  try {
+                    localStorage.removeItem(`quanto_freeze_until_${updatedPersona.id}`);
+                  } catch (err) {
+                    console.warn('Could not remove freeze from localStorage', err);
+                  }
+                }}
+                className="py-2 px-3 bg-amber-600 hover:bg-amber-700 rounded-md text-sm"
+              >
+                Unfreeze now
+              </button>
+            </div>
+          </div>
+        )}
         <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-6 text-white shadow-lg">
           <div className="flex justify-between items-start mb-8">
             <div>
@@ -324,7 +440,16 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
           {/* Action Buttons - Consolidated */}
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => setShowTransferModal(true)}
+              onClick={() => {
+                const freezeUntil = currentPersona.activatedFeatures?.freezeUntil;
+                if (freezeUntil && Date.now() < new Date(freezeUntil).getTime()) {
+                  const remainingMs = new Date(freezeUntil).getTime() - Date.now();
+                  const mins = Math.ceil(remainingMs / 60000);
+                  alert(`Transfers are frozen for another ${mins} minute(s). Please try again later.`);
+                  return;
+                }
+                setShowTransferModal(true);
+              }}
               className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white py-3 rounded-xl font-medium transition-all"
             >
               <Send size={18} />
@@ -517,9 +642,33 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
         isOpen={showTransferModal}
         onClose={() => setShowTransferModal(false)}
         onTransferComplete={handleTransferComplete}
+        onStressDetected={handleStressDetected}
         currentBalance={currentPersona.balance}
         userName={currentPersona.name}
+        persona={currentPersona}
       />
+
+      {/* Stress Detection Modal - Shows when high stress detected */}
+      {stressFlowData && (
+        <StressDetectionModal
+          isOpen={showStressModal}
+          onClose={() => {
+            setShowStressModal(false);
+            setShowTransferModal(false);
+          }}
+          onFreeze={handleStressFreeze}
+          onContinue={handleStressContinue}
+          transferAmount={stressFlowData.transferData.amount}
+          recipientName={stressFlowData.transferData.recipientName}
+          metrics={stressFlowData.metrics}
+          responseTitle={
+            currentPersona.quantoResponses.find((q) => q.flowType === "stress_detection")?.title
+          }
+          responseMessage={
+            currentPersona.quantoResponses.find((q) => q.flowType === "stress_detection")?.message
+          }
+        />
+      )}
 
       {/* Detty December Modal - Shows after fun transfer */}
       <DettyDecemberModal

@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, type KeyboardEvent } from "react";
 import { X, ArrowLeft, Check, ChevronRight } from "lucide-react";
 import { mockBeneficiaries } from "@/lib/mock-data";
+import { useStressDetection } from "@/lib/hooks";
+import type { StressMetrics, Persona } from "@/lib/types";
 
 interface TransferModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTransferComplete: (transfer: TransferData) => void;
+  onStressDetected?: (metrics: StressMetrics, transferData: TransferData) => void;
   currentBalance: number;
   userName: string;
+  persona?: Persona;
 }
 
 export interface TransferData {
@@ -19,6 +23,7 @@ export interface TransferData {
   amount: number;
   narration: string;
   category: string;
+  stressMetrics?: StressMetrics;
 }
 
 type Step = "amount" | "recipient" | "pin" | "success";
@@ -48,9 +53,23 @@ export function TransferModal({
   isOpen,
   onClose,
   onTransferComplete,
+  onStressDetected,
   currentBalance,
   userName,
+  persona,
 }: TransferModalProps) {
+  const [isDevStressEnabled, setIsDevStressEnabled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        setIsDevStressEnabled(params.get("devStress") === "1" || params.get("devStress") === "true");
+      } catch (e) {
+        setIsDevStressEnabled(false);
+      }
+    }
+  }, []);
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const [selectedRecipient, setSelectedRecipient] = useState<
@@ -61,6 +80,83 @@ export function TransferModal({
   const [pin, setPin] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [pinError, setPinError] = useState(false);
+
+  // Stress detection - activate when on PIN screen with large amount
+  const shouldMonitorStress =
+    step === "pin" &&
+    parseFloat(amount) >= 500000 &&
+    persona?.activatedFeatures?.stressDetection === true;
+
+  const { metrics: stressMetrics, isMonitoring, shakeDetected, reportPinEvent } =
+    useStressDetection(shouldMonitorStress);
+
+  // Log live metrics while monitoring so we can debug on-device behavior
+  useEffect(() => {
+    if (isMonitoring) {
+      console.log("Stress monitor - metrics update:", stressMetrics);
+    }
+  }, [stressMetrics, isMonitoring]);
+
+  // Auto-trigger stress flow if live score crosses threshold while on PIN screen
+  const stressAutoTriggeredRef = useRef(false);
+  // helper: aggressively steal focus and then invoke stress handler after a short delay
+  const stealFocusAndInvoke = (metricsToSend: StressMetrics, cb: () => void) => {
+    try {
+      // blur current active element
+      (document.activeElement as HTMLElement | null)?.blur();
+
+      // create a temporary readonly input and focus it to steal focus reliably on iOS
+      const tmp = document.createElement("input");
+      tmp.setAttribute("type", "text");
+      tmp.setAttribute("aria-hidden", "true");
+      tmp.setAttribute("readonly", "true");
+      tmp.style.position = "absolute";
+      tmp.style.left = "-9999px";
+      document.body.appendChild(tmp);
+      tmp.focus();
+
+      // wait briefly to let keyboard/system UI dismiss, then remove and invoke
+      setTimeout(() => {
+        try {
+          tmp.blur();
+        } catch (e) {}
+        document.body.removeChild(tmp);
+        cb();
+      }, 200);
+    } catch (err) {
+      console.warn("stealFocus failed", err);
+      cb();
+    }
+  };
+
+  useEffect(() => {
+    if (
+      shouldMonitorStress &&
+      isMonitoring &&
+      !stressAutoTriggeredRef.current &&
+      shakeDetected
+    ) {
+      console.log("Auto-triggering stress flow from shake detection");
+      stressAutoTriggeredRef.current = true;
+
+      if (selectedRecipient && onStressDetected) {
+        const transferData: TransferData = {
+          recipientName: selectedRecipient.name,
+          recipientAccount: selectedRecipient.accountNumber,
+          recipientBank: selectedRecipient.bank,
+          amount: parseFloat(amount),
+          narration,
+          category,
+          stressMetrics,
+        };
+        stealFocusAndInvoke(stressMetrics, () => onStressDetected(stressMetrics, transferData));
+      }
+    }
+    // Reset trigger when not monitoring or when step changes away from PIN
+    if (!shouldMonitorStress || !isMonitoring) {
+      stressAutoTriggeredRef.current = false;
+    }
+  }, [shouldMonitorStress, isMonitoring, shakeDetected, selectedRecipient, onStressDetected, amount, narration, category, stressMetrics]);
 
   if (!isOpen) return null;
 
@@ -81,6 +177,14 @@ export function TransferModal({
   const handleContinueFromAmount = () => {
     const transferAmount = parseFloat(amount);
     if (transferAmount > 0 && transferAmount <= currentBalance) {
+      // Check if persona has an active freeze
+      const freezeUntil = persona?.activatedFeatures?.freezeUntil;
+      if (freezeUntil && Date.now() < new Date(freezeUntil).getTime()) {
+        const remainingMs = new Date(freezeUntil).getTime() - Date.now();
+        const mins = Math.ceil(remainingMs / 60000);
+        alert(`Transfers are frozen for another ${mins} minute(s). Please try again later.`);
+        return;
+      }
       setStep("recipient");
     }
   };
@@ -88,6 +192,15 @@ export function TransferModal({
   const handleSelectRecipient = (
     beneficiary: (typeof mockBeneficiaries)[0]
   ) => {
+    // Check freeze before moving to PIN
+    const freezeUntil = persona?.activatedFeatures?.freezeUntil;
+    if (freezeUntil && Date.now() < new Date(freezeUntil).getTime()) {
+      const remainingMs = new Date(freezeUntil).getTime() - Date.now();
+      const mins = Math.ceil(remainingMs / 60000);
+      alert(`Transfers are frozen for another ${mins} minute(s). Please try again later.`);
+      return;
+    }
+
     setSelectedRecipient(beneficiary);
     setStep("pin");
   };
@@ -97,6 +210,14 @@ export function TransferModal({
       const newPin = [...pin];
       newPin[index] = value;
       setPin(newPin);
+
+      // Report pin change to stress detector (current overall length)
+      try {
+        const currentLen = newPin.filter(Boolean).length;
+        reportPinEvent?.("change", currentLen);
+      } catch (err) {
+        console.warn("reportPinEvent(change) failed", err);
+      }
 
       if (value && index < 3) {
         const nextInput = document.getElementById(`pin-${index + 1}`);
@@ -110,10 +231,106 @@ export function TransferModal({
     }
   };
 
+  const handlePinKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Backspace") return;
+    e.preventDefault();
+
+    const currentVal = pin[index];
+
+    // If current box is empty, move to previous box and clear it
+    if (!currentVal) {
+      if (index > 0) {
+        const newPin = [...pin];
+        newPin[index - 1] = "";
+        setPin(newPin);
+
+        const prevInput = document.getElementById(`pin-${index - 1}`) as HTMLInputElement | null;
+        prevInput?.focus();
+
+        try {
+          const currentLen = newPin.filter(Boolean).length;
+          reportPinEvent?.("delete", currentLen);
+        } catch (err) {
+          console.warn("reportPinEvent(delete) failed", err);
+        }
+      }
+    } else {
+      // If current box has a value, clear it
+      const newPin = [...pin];
+      newPin[index] = "";
+      setPin(newPin);
+      try {
+        const currentLen = newPin.filter(Boolean).length;
+        reportPinEvent?.("delete", currentLen);
+      } catch (err) {
+        console.warn("reportPinEvent(delete) failed", err);
+      }
+    }
+  };
+
   const handlePinSubmit = (pinToSubmit = pin) => {
     const enteredPin = pinToSubmit.join("");
+    try {
+      reportPinEvent?.("submit", enteredPin.length);
+    } catch (err) {
+      console.warn("reportPinEvent(submit) failed", err);
+    }
     if (enteredPin.length === 4) {
       setLoading(true);
+
+      // Prevent completion if persona has an active freeze (defensive)
+      const freezeUntil = persona?.activatedFeatures?.freezeUntil;
+      if (freezeUntil && Date.now() < new Date(freezeUntil).getTime()) {
+        setLoading(false);
+        const remainingMs = new Date(freezeUntil).getTime() - Date.now();
+        const mins = Math.ceil(remainingMs / 60000);
+        alert(`Transfers are frozen for another ${mins} minute(s). This transfer was not sent.`);
+        return;
+      }
+      console.log("handlePinSubmit called", {
+        shouldMonitorStress,
+        amount,
+        enteredPin,
+        isMonitoring,
+        stressScore: stressMetrics.overallScore,
+        tremor: stressMetrics.tremorIntensity,
+        rapid: stressMetrics.rapidMovements,
+        hasOnStress: !!onStressDetected,
+        selectedRecipientExists: !!selectedRecipient,
+      });
+
+      // Check stress levels if monitoring is active — only act on explicit shake
+      if (shouldMonitorStress && shakeDetected) {
+        // High stress detected - trigger stress modal
+        setLoading(false);
+        console.log("High stress detected, invoking onStressDetected", stressMetrics.overallScore);
+        // Blur inputs to hide on-screen keyboard before showing modal
+        try {
+          (document.activeElement as HTMLElement | null)?.blur();
+          for (let i = 0; i < 4; i++) {
+            const el = document.getElementById(`pin-${i}`) as HTMLElement | null;
+            el?.blur();
+          }
+        } catch (err) {
+          console.warn('Blur error', err);
+        }
+        if (selectedRecipient && onStressDetected) {
+          const transferData: TransferData = {
+            recipientName: selectedRecipient.name,
+            recipientAccount: selectedRecipient.accountNumber,
+            recipientBank: selectedRecipient.bank,
+            amount: parseFloat(amount),
+            narration,
+            category,
+            stressMetrics,
+          };
+          onStressDetected(stressMetrics, transferData);
+        }
+        return;
+      }
+
+      console.log("No high stress action taken — proceeding normal flow", { shouldMonitorStress, score: stressMetrics.overallScore });
+      // Normal flow - no stress detected or not monitoring
       setTimeout(() => {
         if (selectedRecipient) {
           setStep("success");
@@ -127,6 +344,7 @@ export function TransferModal({
               amount: parseFloat(amount),
               narration,
               category,
+              stressMetrics: shouldMonitorStress ? stressMetrics : undefined,
             });
             handleReset();
             onClose();
@@ -341,6 +559,16 @@ export function TransferModal({
           {/* Step 3: PIN Entry */}
           {step === "pin" && selectedRecipient && (
             <div className="p-6 space-y-6">
+              {/* Debug overlay for live stress metrics (visible during testing) */}
+              <div className="absolute top-4 right-4 bg-zinc-900/80 border border-zinc-800 rounded-lg p-2 text-xs text-zinc-300 z-50">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isMonitoring ? 'bg-green-400' : 'bg-amber-400'}`} />
+                  <span className="font-medium">Monitoring</span>
+                </div>
+                <div className="mt-1">
+                  <div className="text-[10px] text-zinc-400">Shake to trigger security check</div>
+                </div>
+              </div>
               {/* Transaction Summary */}
               <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 space-y-4">
                 <div className="flex items-center gap-4">
@@ -380,6 +608,7 @@ export function TransferModal({
                       inputMode="numeric"
                       value={digit}
                       onChange={(e) => handlePinChange(index, e.target.value)}
+                      onKeyDown={(e) => handlePinKeyDown(index, e)}
                       maxLength={1}
                       className={`w-14 h-14 text-center text-2xl bg-zinc-900 border-2 rounded-xl text-zinc-50 focus:outline-none focus:border-blue-500 transition-colors ${
                         pinError
@@ -401,6 +630,56 @@ export function TransferModal({
                   <div className="flex items-center justify-center gap-2 text-blue-400">
                     <div className="animate-spin h-5 w-5 border-2 border-blue-400 border-t-transparent rounded-full" />
                     <span className="text-sm">Processing...</span>
+                  </div>
+                )}
+
+                {/* Dev-only test helper: simulate a high-stress detection without shaking */}
+                {isDevStressEnabled && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        console.log("Dev: simulate high stress click", { stressMetrics, shouldMonitorStress });
+                        const fakeMetrics: StressMetrics = {
+                          tremorIntensity: 90,
+                          rapidMovements: 20,
+                          tapPatterns: { repeatedTaps: 5, averageInterval: 150 },
+                          sessionDuration: 6,
+                          overallScore: 95,
+                          timestamp: new Date().toISOString(),
+                          confidence: 99,
+                        };
+
+                        if (shouldMonitorStress && onStressDetected && selectedRecipient) {
+                          const transferData: TransferData = {
+                            recipientName: selectedRecipient.name,
+                            recipientAccount: selectedRecipient.accountNumber,
+                            recipientBank: selectedRecipient.bank,
+                            amount: parseFloat(amount),
+                            narration,
+                            category,
+                            stressMetrics: fakeMetrics,
+                          };
+                          onStressDetected(fakeMetrics, transferData);
+                        } else if (onStressDetected && selectedRecipient) {
+                          // Allow forcing even when shouldMonitorStress is false (dev) so QA can test flow
+                          const transferData: TransferData = {
+                            recipientName: selectedRecipient.name,
+                            recipientAccount: selectedRecipient.accountNumber,
+                            recipientBank: selectedRecipient.bank,
+                            amount: parseFloat(amount),
+                            narration,
+                            category,
+                            stressMetrics: fakeMetrics,
+                          };
+                          onStressDetected(fakeMetrics, transferData);
+                        } else {
+                          alert("No recipient selected or onStressDetected handler missing.");
+                        }
+                      }}
+                      className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold text-sm"
+                    >
+                      Simulate High Stress (dev)
+                    </button>
                   </div>
                 )}
               </div>

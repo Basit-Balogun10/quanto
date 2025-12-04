@@ -66,7 +66,8 @@ export type QuantoInsight = {
     | "reward_offer"
     | "spending_cooloff"
     | "detty_december"
-    | "travel_reward";
+    | "travel_reward"
+    | "stress_detection";
   flowData?: Record<string, any>;
 };
 
@@ -139,6 +140,9 @@ export type Persona = {
     cooloffPeriod?: boolean;
     salaryDelaySupport?: boolean;
     travelReward?: boolean;
+    stressDetection?: boolean;
+    // ISO timestamp until which transfers are frozen (when user chooses to freeze)
+    freezeUntil?: string;
   };
 };
 
@@ -147,6 +151,19 @@ export type QuickAction = {
   label: string;
   icon: string;
   description?: string;
+};
+
+export type StressMetrics = {
+  tremorIntensity: number; // 0-100 scale
+  rapidMovements: number; // count of movements >15 m/s²
+  tapPatterns: {
+    repeatedTaps: number; // count of repeated taps in same area
+    averageInterval: number; // milliseconds between taps
+  };
+  sessionDuration: number; // seconds on PIN screen
+  overallScore: number; // 0-100 composite stress score
+  timestamp: string;
+  confidence: number; // 0-100 confidence in reading
 };
 
 export { defaultAdminControls } from "./mock-data";
