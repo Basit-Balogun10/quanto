@@ -29,13 +29,13 @@ export function StressDetectionModal({
   responseTitle,
   responseMessage,
 }: StressDetectionModalProps) {
-  const [step, setStep] = useState<Step>("analyzing");
+  const [step, setStep] = useState<Step>("recommendation");
   const [progress, setProgress] = useState(0);
   const hiddenFocusRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
-      setStep("analyzing");
+      setStep("recommendation");
       setProgress(0);
       return;
     }
@@ -79,13 +79,20 @@ export function StressDetectionModal({
 
   // We no longer expose the numeric stress score in the UI — show a gentle Quanto response instead.
   const respostaTitle = responseTitle || "Security Check";
-  const respostaMessage = responseMessage || "We detected unusual movement patterns; please review this transfer for your safety.";
+  const respostaMessage =
+    responseMessage ||
+    "We detected unusual movement patterns; please review this transfer for your safety.";
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-zinc-900 w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl overflow-hidden border border-zinc-800 max-h-[90vh] flex flex-col animate-scale-in">
         {/* Hidden focus element to steal focus from inputs on open (mitigate iOS 'Shake to Undo') */}
-        <div ref={hiddenFocusRef} tabIndex={-1} aria-hidden style={{ position: "absolute", left: -9999, width: 1, height: 1 }} />
+        <div
+          ref={hiddenFocusRef}
+          tabIndex={-1}
+          aria-hidden
+          style={{ position: "absolute", left: -9999, width: 1, height: 1 }}
+        />
         {/* Header */}
         <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
           <h3 className="text-xl font-bold text-zinc-50">Security Check</h3>
@@ -120,7 +127,9 @@ export function StressDetectionModal({
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-zinc-400">Progress</span>
-                  <span className="text-zinc-50 font-semibold">{progress}%</span>
+                  <span className="text-zinc-50 font-semibold">
+                    {progress}%
+                  </span>
                 </div>
                 <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
                   <div
@@ -131,30 +140,36 @@ export function StressDetectionModal({
               </div>
 
               <p className="text-sm text-center text-zinc-400">
-                Monitoring device sensors for a brief window. Shake the phone if you feel pressured; we'll open a security check.
+                Monitoring device sensors for a brief window. Shake the phone if
+                you feel pressured; we'll open a security check.
               </p>
             </div>
           )}
 
           {/* Step 2: Results */}
-            {step === "results" && (
-              <div className="p-6 space-y-6">
-                <div className="text-center space-y-4">
-                  <div className="w-20 h-20 border-2 rounded-full flex items-center justify-center mx-auto text-amber-400 bg-amber-900/30">
-                    <AlertTriangle className="w-10 h-10" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-zinc-50 mb-2">{respostaTitle}</h4>
-                    <p className="text-sm text-zinc-400">{respostaMessage}</p>
-                  </div>
+          {step === "results" && (
+            <div className="p-6 space-y-6">
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 border-2 rounded-full flex items-center justify-center mx-auto text-amber-400 bg-amber-900/30">
+                  <AlertTriangle className="w-10 h-10" />
                 </div>
-
-                {/* Minimal explanation and CTA */}
-                <div className="bg-zinc-800/50 rounded-xl p-4 text-center">
-                  <p className="text-sm text-zinc-300">We've analyzed recent movement patterns and recommend taking a moment before proceeding.</p>
+                <div>
+                  <h4 className="text-xl font-bold text-zinc-50 mb-2">
+                    {respostaTitle}
+                  </h4>
+                  <p className="text-sm text-zinc-400">{respostaMessage}</p>
                 </div>
               </div>
-            )}
+
+              {/* Minimal explanation and CTA */}
+              <div className="bg-zinc-800/50 rounded-xl p-4 text-center">
+                <p className="text-sm text-zinc-300">
+                  We've analyzed recent movement patterns and recommend taking a
+                  moment before proceeding.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Step 3: Recommendation */}
           {step === "recommendation" && (
@@ -170,16 +185,17 @@ export function StressDetectionModal({
                     </h4>
                     <p className="text-sm text-amber-200/80 leading-relaxed">
                       We detected elevated stress levels during this ₦
-                      {transferAmount.toLocaleString()} transfer to {recipientName}.
+                      {transferAmount.toLocaleString()} transfer to{" "}
+                      {recipientName}.
                     </p>
                   </div>
                 </div>
 
                 <div className="bg-amber-900/30 border border-amber-800/50 rounded-lg p-4">
                   <p className="text-sm text-amber-200 leading-relaxed">
-                    <span className="font-semibold">Why this matters:</span> Stress
-                    during large transfers can indicate pressure, coercion, or
-                    uncertainty. Your safety is our priority.
+                    <span className="font-semibold">Why this matters:</span>{" "}
+                    Stress during large transfers can indicate pressure,
+                    coercion, or uncertainty. Your safety is our priority.
                   </p>
                 </div>
               </div>
@@ -220,7 +236,9 @@ export function StressDetectionModal({
                       <CheckCircle className="w-6 h-6" />
                     </div>
                     <div className="flex-1 text-left">
-                      <div className="font-semibold mb-1">Continue Transfer</div>
+                      <div className="font-semibold mb-1">
+                        Continue Transfer
+                      </div>
                       <div className="text-sm text-zinc-400">
                         I understand the risks and want to proceed
                       </div>
@@ -230,7 +248,8 @@ export function StressDetectionModal({
               </div>
 
               <p className="text-xs text-center text-zinc-500">
-                Confidence: {Math.round(metrics.confidence)}% • Powered by MEMS sensors
+                Confidence: {Math.round(metrics.confidence)}% • Powered by MEMS
+                sensors
               </p>
             </div>
           )}

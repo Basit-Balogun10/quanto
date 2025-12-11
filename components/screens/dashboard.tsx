@@ -1,6 +1,11 @@
 "use client";
 
-import type { Persona, QuantoInsight, Campaign, StressMetrics } from "@/lib/types";
+import type {
+  Persona,
+  QuantoInsight,
+  Campaign,
+  StressMetrics,
+} from "@/lib/types";
 import {
   ChevronRight,
   Eye,
@@ -64,7 +69,9 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
 
     // Restore any persisted freeze state for this persona
     try {
-      const stored = localStorage.getItem(`quanto_freeze_until_${currentPersona.id}`);
+      const stored = localStorage.getItem(
+        `quanto_freeze_until_${currentPersona.id}`
+      );
       if (stored) {
         const updatedPersona = {
           ...currentPersona,
@@ -112,7 +119,9 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
     if (freezeUntil && Date.now() < new Date(freezeUntil).getTime()) {
       const remainingMs = new Date(freezeUntil).getTime() - Date.now();
       const mins = Math.ceil(remainingMs / 60000);
-      alert(`Transfers are frozen for another ${mins} minute(s). This transfer was not completed.`);
+      alert(
+        `Transfers are frozen for another ${mins} minute(s). This transfer was not completed.`
+      );
       return;
     }
 
@@ -357,7 +366,10 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
 
     // Persist freeze info to localStorage so it survives reloads during testing
     try {
-      localStorage.setItem(`quanto_freeze_until_${updatedPersona.id}`, freezeUntil);
+      localStorage.setItem(
+        `quanto_freeze_until_${updatedPersona.id}`,
+        freezeUntil
+      );
     } catch (err) {
       console.warn("Could not persist freezeUntil", err);
     }
@@ -366,7 +378,9 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
     setShowTransferModal(false);
     setStressFlowData(null);
 
-    alert("Account temporarily frozen for 15 minutes. You can review this transfer when you feel ready.");
+    alert(
+      "Account temporarily frozen for 15 minutes. You can review this transfer when you feel ready."
+    );
   };
 
   const handleStressContinue = () => {
@@ -385,40 +399,28 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
     <div className="space-y-6">
       <div className="relative">
         {/* Freeze banner - shows when persona has an active freeze */}
-        {currentPersona.activatedFeatures?.freezeUntil && Date.now() < new Date(currentPersona.activatedFeatures.freezeUntil).getTime() && (
-          <div className="mb-4 p-4 bg-amber-900/20 border border-amber-800 rounded-lg text-amber-200 flex items-center justify-between">
-            <div>
+        {currentPersona.activatedFeatures?.freezeUntil &&
+          Date.now() <
+            new Date(
+              currentPersona.activatedFeatures.freezeUntil
+            ).getTime() && (
+            <div className="mb-4 p-4 bg-amber-900/20 border border-amber-800 rounded-lg text-amber-200">
               <div className="font-semibold">Account temporarily frozen</div>
-              <div className="text-sm text-amber-200/80">Transfers are disabled for a short time to protect your account.</div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-sm">
-                {Math.ceil((new Date(currentPersona.activatedFeatures.freezeUntil).getTime() - Date.now()) / 60000)}m left
+              <div className="text-sm text-amber-200/80">
+                Transfers are disabled for a short time to protect your account.
               </div>
-              <button
-                onClick={() => {
-                  // Clear freeze immediately
-                  const updatedPersona = {
-                    ...currentPersona,
-                    activatedFeatures: {
-                      ...currentPersona.activatedFeatures,
-                    },
-                  };
-                  delete (updatedPersona.activatedFeatures as any).freezeUntil;
-                  setCurrentPersona(updatedPersona);
-                  try {
-                    localStorage.removeItem(`quanto_freeze_until_${updatedPersona.id}`);
-                  } catch (err) {
-                    console.warn('Could not remove freeze from localStorage', err);
-                  }
-                }}
-                className="py-2 px-3 bg-amber-600 hover:bg-amber-700 rounded-md text-sm"
-              >
-                Unfreeze now
-              </button>
+              <div className="text-sm mt-2">
+                {Math.ceil(
+                  (new Date(
+                    currentPersona.activatedFeatures.freezeUntil
+                  ).getTime() -
+                    Date.now()) /
+                    60000
+                )}{" "}
+                minutes remaining • Go to Settings to unfreeze
+              </div>
             </div>
-          </div>
-        )}
+          )}
         <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-6 text-white shadow-lg">
           <div className="flex justify-between items-start mb-8">
             <div>
@@ -441,11 +443,18 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => {
-                const freezeUntil = currentPersona.activatedFeatures?.freezeUntil;
-                if (freezeUntil && Date.now() < new Date(freezeUntil).getTime()) {
-                  const remainingMs = new Date(freezeUntil).getTime() - Date.now();
+                const freezeUntil =
+                  currentPersona.activatedFeatures?.freezeUntil;
+                if (
+                  freezeUntil &&
+                  Date.now() < new Date(freezeUntil).getTime()
+                ) {
+                  const remainingMs =
+                    new Date(freezeUntil).getTime() - Date.now();
                   const mins = Math.ceil(remainingMs / 60000);
-                  alert(`Transfers are frozen for another ${mins} minute(s). Please try again later.`);
+                  alert(
+                    `Transfers are frozen for another ${mins} minute(s). Please try again later.`
+                  );
                   return;
                 }
                 setShowTransferModal(true);
@@ -662,10 +671,14 @@ export function DashboardScreen({ persona }: DashboardScreenProps) {
           recipientName={stressFlowData.transferData.recipientName}
           metrics={stressFlowData.metrics}
           responseTitle={
-            currentPersona.quantoResponses.find((q) => q.flowType === "stress_detection")?.title
+            currentPersona.quantoResponses.find(
+              (q) => q.flowType === "stress_detection"
+            )?.title
           }
           responseMessage={
-            currentPersona.quantoResponses.find((q) => q.flowType === "stress_detection")?.message
+            currentPersona.quantoResponses.find(
+              (q) => q.flowType === "stress_detection"
+            )?.message
           }
         />
       )}
